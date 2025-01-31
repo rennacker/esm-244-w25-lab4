@@ -1,12 +1,20 @@
 ---
-title: "Untitled"
-format: html
+title: "PCA LAB 4"
+author: "Travis Rennacker"
+format: 
+  html:
+    embed-resources: true
+    code-fold: show
+    toc: true
 execute:
-  eval: false
+  eval: true 
+  message: false
+  warning: false
 ---
 
 
 ```{r setup}
+# r setup gives code chunk name in nav 
 
 library(tidyverse)
 library(here)
@@ -20,7 +28,9 @@ Principal components analysis is an ordination method allowing us to glean as mu
 
 Here, we'll use [data from the Human Development Index](https://hdr.undp.org/data-center).  Quick overview of the HDI:
 
-> The Human Development Index (HDI) is a summary measure of average achievement in key dimensions of human development: a long and healthy life, being knowledgeable and having a decent standard of living. The HDI is the geometric mean of normalized indices for each of the three dimensions.
+> The Human Development Index (HDI) is a
+
+summary measure of average achievement in key dimensions of human development: a long and healthy life, being knowledgeable and having a decent standard of living. The HDI is the geometric mean of normalized indices for each of the three dimensions.
 
 > The health dimension is assessed by life expectancy at birth, the education dimension is measured by mean of years of schooling for adults aged 25 years and more and expected years of schooling for children of school entering age. The standard of living dimension is measured by gross national income per capita. The HDI uses the logarithm of income, to reflect the diminishing importance of income with increasing GNI. The scores for the three HDI dimension indices are then aggregated into a composite index using geometric mean. Refer to Technical notes for more details.
 
@@ -29,6 +39,19 @@ Load in the data using `read_csv`. Perform some exploratory analysis on the data
 
 
 ```{r}
+hdi_raw <- read_csv(here("data", "hdi_clean.csv"))
+
+mod_hdi_long <- hdi_raw |> pivot_longer(names_to='name', values_to = 'value', where(is.numeric))
+
+ggplot(mod_hdi_long, aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ name, scales = 'free_x')
+
+hdi_data <- hdi_raw |> drop_na() |>
+  mutate(gnipc_2021=log(gnipc_2021)) |>
+  mutate(hdicode=factor(hdicode, levels=c('Low', "Medium", 'High', 'Very High')))
+
+
 
 ```
 
@@ -38,14 +61,14 @@ Run the pca using the `prcomp` function. What extra argument do we need to inclu
 
 ```{r}
 hdi_pca <- hdi_data %>% 
-  select(...) %>%
-  prcomp(...  )
+  select(where(is.numeric)) %>%
+  prcomp(scale=TRUE)
 ```
 
 
 Examine the structure of the hdi_pca object. What do you think each piece means? Use documentation to help you understand the output.
 
-
+looks like pc1 and pc2 describe most of the data
 
 
 
@@ -69,8 +92,13 @@ Create a dataframe with the necessary indgreidents to make a screeplot. One piec
 ```{r}
 pc_names <- colnames(hdi_pca$rotation)
 
+sd_vec <- hdi_pca$sdev
+var_vec <- sd_vec^2
+
+pct_v <- var_vec/sum(var_vec)
+
 # Use this data frame to make the screeplot
-pct_expl_df <- data.frame(pc=pc_names,
+pct_expl_df <- data.frame(pc=pc_names, pct_v=pct_v, v=var_vec
                           
   
   
@@ -78,6 +106,7 @@ pct_expl_df <- data.frame(pc=pc_names,
 
 # Screeplot
 
+ggplot() + geom_col(pct_expl_df, mapping = aes(x=pc, y=pct_v)) + labs(ylab("Percent")) + scale_y_continuous(labels=scales::percent, expand=c(0,0))
 
 
 ```
